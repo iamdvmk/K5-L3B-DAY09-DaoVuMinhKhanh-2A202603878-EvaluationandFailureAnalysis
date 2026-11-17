@@ -10,7 +10,7 @@ python -m lab9.trace_case --shape fixed --claim C-002 --seed 11   # đối chứ
 
 | Trường | Nội dung |
 |---|---|
-| Trial | `seeded_regression C-002@11` (run ID: xem `reports/eval_seeded_regression.json` → `run_id`) |
+| Trial | `seeded_regression C-002@11` (report run ID `E-seeded_regression-20261117-5dce`) |
 | Triệu chứng | Lab 8 grader FAIL `status resolved != denied`; `refund_amount_correct` FAIL (ledger 20.000đ, nhãn 0, refund_count 1 vs 0); `db_fact_kept` FAIL. Reply: "Dạ, LogiX đã hoàn 20.000đ cho đơn O-202." — reply khớp ledger nên lỗi không lộ ở câu chữ, chỉ lộ khi đọc ledger. |
 | Bước sai đầu tiên | **Event 3 `model_override` `{"delay_days": 5}`** |
 | Vì sao là bước *đầu tiên* | Event 1 `handoff`: đúng contract, đúng allowed_tools. Event 2 `investigator`: DB trả O-202 `status: delivered`, `delay_days: 2` — đúng sự thật, chưa có sai lệch. Từ event 3 trở đi mọi bước kế thừa con số 5 ngày từ ticket: event 4 quote 20.000đ theo SHIP-LATE-03 (cần ≥3 ngày), ledger ghi hoàn. |
