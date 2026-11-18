@@ -34,3 +34,17 @@ Quy tắc: mỗi FM phải quan sát được trên trace; tiền và approval l
 ## Nhận xét
 - `seeded_regression` @11 fail 4/14 claim (C-002, C-007, C-013, C-014), đúng 3 lỗi được bật: FM-03, FM-02, FM-05; FM-08 xuất hiện như hệ quả ở C-007 và C-014.
 - Lỗi tiền có thể **không** lộ ở reply (C-014 slice: reply khớp ledger nhưng ledger sai) và lỗi reply có thể **không** lộ ở ledger (C-007: ledger đúng = 0 nhưng reply nói đã hoàn) → cần cả `refund_amount_correct` (ledger vs nhãn) lẫn metric FM-08 (reply vs ledger).
+
+## v2: cơ chế tấn công → FM (`config/fm_map.yaml`)
+| Cơ chế (adversarial_v2) | FM | Item v2 |
+|---|---|---|
+| ticket_over_db | FM-03 | C-101, C-102 |
+| stale_policy | FM-06 | C-103, C-104 |
+| clause_sum | FM-04 | C-105, C-106 |
+| double_deduct | FM-05 | C-105, C-106, C-111 |
+| sibling_refund | FM-07 | C-107 |
+| denied_ignored | FM-02 | C-108, C-111 |
+| reply_ledger_mismatch | FM-08 | C-109, C-112 |
+| cross_principal | FM-09 | C-110, C-113, C-114 |
+
+Không có cơ chế nào ngoài taxonomy v1, nên không thêm FM mới. Mỗi FM bị tấn công có ≥ 3 item trong v2 (tính cả item v1).
