@@ -14,26 +14,52 @@ POS = "FAIL"   # the judge's job is to FIND failures, so FAIL is the positive cl
 
 def confusion(human: Sequence[str], judge: Sequence[str]) -> dict[str, int]:
     """tp/fp/fn/tn with FAIL as positive."""
-    # TODO M2
-    raise NotImplementedError
+    if len(human) != len(judge):
+        raise ValueError("human and judge must have the same length")
+    c = {"tp": 0, "fp": 0, "fn": 0, "tn": 0}
+    for h, j in zip(human, judge):
+        h_pos, j_pos = h == POS, j == POS
+        if j_pos and h_pos:
+            c["tp"] += 1          # judge FAIL, human FAIL
+        elif j_pos:
+            c["fp"] += 1          # judge FAIL, human PASS  (false alarm)
+        elif h_pos:
+            c["fn"] += 1          # judge PASS, human FAIL  (missed failure)
+        else:
+            c["tn"] += 1
+    return c
 
 
 def precision_recall(human: Sequence[str], judge: Sequence[str]) -> tuple[float, float]:
-    # TODO M2: precision = tp/(tp+fp), recall = tp/(tp+fn); return 0.0 when the denominator is 0
-    raise NotImplementedError
+    c = confusion(human, judge)
+    p_den, r_den = c["tp"] + c["fp"], c["tp"] + c["fn"]
+    precision = c["tp"] / p_den if p_den else 0.0
+    recall = c["tp"] / r_den if r_den else 0.0
+    return precision, recall
 
 
 def cohen_kappa(human: Sequence[str], judge: Sequence[str]) -> float:
     """kappa = (p_o - p_e) / (1 - p_e). Raise ValueError when undefined (p_e == 1):
     a constant judge has no signal and must FAIL calibration, not pass on a technicality."""
-    # TODO M2
-    raise NotImplementedError
+    c = confusion(human, judge)
+    n = sum(c.values())
+    if n == 0:
+        raise ValueError("kappa undefined: no items")
+    p_o = (c["tp"] + c["tn"]) / n
+    h_fail, j_fail = (c["tp"] + c["fn"]) / n, (c["tp"] + c["fp"]) / n
+    p_e = h_fail * j_fail + (1 - h_fail) * (1 - j_fail)
+    if p_e >= 1.0:
+        raise ValueError("kappa undefined: p_e == 1 (both raters constant)")
+    return (p_o - p_e) / (1 - p_e)
 
 
 def rogan_gladen(observed_rate: float, sensitivity: float, specificity: float) -> float:
     """Correct an observed failure rate for judge error; clip to [0, 1]."""
-    # TODO M2: (p_obs + spec - 1) / (sens + spec - 1)
-    raise NotImplementedError
+    denom = sensitivity + specificity - 1
+    if denom <= 0:
+        raise ValueError("Rogan-Gladen undefined: judge is no better than chance (sens + spec <= 1)")
+    corrected = (observed_rate + specificity - 1) / denom
+    return min(1.0, max(0.0, corrected))
 
 
 def paired_bootstrap(a: Sequence[float], b: Sequence[float], *, n_resamples: int = 1000,
@@ -41,8 +67,19 @@ def paired_bootstrap(a: Sequence[float], b: Sequence[float], *, n_resamples: int
     """a[i], b[i] = per-item mean over seeds, SAME items, SAME order.
     Return (mean(a)-mean(b), lo, hi) with scipy.stats.bootstrap(paired=True, method="percentile",
     rng=numpy.random.default_rng(rng)). If a == b everywhere return (0.0, 0.0, 0.0)."""
-    # TODO M4
-    raise NotImplementedError
+    import numpy as np
+    from scipy import stats as st
+
+    x, y = np.asarray(a, dtype=float), np.asarray(b, dtype=float)
+    if x.shape != y.shape or x.size == 0:
+        raise ValueError("paired bootstrap needs two non-empty samples of equal length (same items, same order)")
+    d = float(x.mean() - y.mean())
+    if np.array_equal(x, y):
+        return (0.0, 0.0, 0.0)          # no difference anywhere: every resample is 0 as well
+    res = st.bootstrap((x, y), lambda u, v, axis=-1: u.mean(axis=axis) - v.mean(axis=axis),
+                       paired=True, vectorized=True, n_resamples=n_resamples, confidence_level=confidence,
+                       method="percentile", rng=np.random.default_rng(rng))
+    return (d, float(res.confidence_interval.low), float(res.confidence_interval.high))
 
 
 def pass_at_k(n: int, c: int, k: int) -> float:
